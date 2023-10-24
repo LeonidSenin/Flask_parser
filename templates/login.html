@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<head>
+    <meta charset="UTF-8">
+    <title>FlaskApp</title>
+    </head>
+<body>
+<nav>
+<a href="/index">FlaskApp</a>
+<a href="/about">About</a>
+</nav>
+<hr>
+<div class="content">
+{% block content %} {% endblock %}
+</div>
+
+<h1>Ввод запроса</h1>
+
+    <form action="/pars_yand" method="get" >
+        {{ form.hidden_tag() }}
+        <p>
+            {{ form.username.label }}<br>
+            {{ form.username(size=32) }}
+        </p>
+        <p>{{ form.submit() }}</p>
+<!--        <p>{{ form.submit_yand.label }} {{ form.submit_yand() }}</p>-->
+
+    </form>
+
+</body>
+
+
+<!--<form action="/pars_goog" method="get" >-->
+<!--        {{ form.hidden_tag() }}-->
+<!--        <p>-->
+<!--            {{ form.username.label }}<br>-->
+<!--            {{ form.username(size=32) }}-->
+<!--        </p>-->
+<!--        <p>{{ form.submit() }}</p>-->
+<!--        <p>{{ form.submit_goog.label }} {{ form.submit_goog() }}</p>-->
+<!--    </form>-->
