@@ -6,8 +6,6 @@ from wtforms.validators import DataRequired
 class LoginForm(FlaskForm):
     username = StringField('Запрос', validators=[DataRequired()])
     submit = SubmitField('Искать')
-    submit_yand = BooleanField('Yandex')
-    submit_goog = BooleanField('Google')
 
 
 

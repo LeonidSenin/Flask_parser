@@ -1,8 +1,9 @@
 <!DOCTYPE html>
 <head>
     <meta charset="UTF-8">
-    <title>FlaskApp</title>
-    </head>
+    <title>{{ title }}</title>
+    <link rel="shortcut icon" href="{{ url_for('static', filename='/favicon.ico') }}">
+</head>
 <body>
 <nav>
 <a href="/index">FlaskApp</a>
@@ -12,29 +13,16 @@
 <div class="content">
 {% block content %} {% endblock %}
 </div>
-
-<h1>Ввод запроса</h1>
-
-    <form action="/pars_yand" method="get" >
+<h1 align="center">Ввод запроса</h1>
+    <form align="center" action="/pars" method="get" >
         {{ form.hidden_tag() }}
         <p>
             {{ form.username.label }}<br>
             {{ form.username(size=32) }}
         </p>
-        <p>{{ form.submit() }}</p>
-<!--        <p>{{ form.submit_yand.label }} {{ form.submit_yand() }}</p>-->
-
+        <p>{{ form.submit()}}</p>
     </form>
-
 </body>
 
 
-<!--<form action="/pars_goog" method="get" >-->
-<!--        {{ form.hidden_tag() }}-->
-<!--        <p>-->
-<!--            {{ form.username.label }}<br>-->
-<!--            {{ form.username(size=32) }}-->
-<!--        </p>-->
-<!--        <p>{{ form.submit() }}</p>-->
-<!--        <p>{{ form.submit_goog.label }} {{ form.submit_goog() }}</p>-->
-<!--    </form>-->
+
