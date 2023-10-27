@@ -23,13 +23,13 @@ pd.set_option('max_colwidth', 70)
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = SECRET_KEY
-menu = ['something', 'about']
+# menu = ['something', 'about']
 
 
 @app.route('/', methods=['post', 'get'])
 def start_form():
     form = LoginForm()
-    return render_template('login.html', title='Home page', form=form, menu=menu)
+    return render_template('login.html', title='Home page', form=form)
 
 
 @app.route('/about')
@@ -46,7 +46,6 @@ def index():
 def pars():
     name = request.args.get('username')
     period = datetime.datetime.now()
-
     def pars_goog():
         print('Google')
         url = 'https://www.google.com/'
