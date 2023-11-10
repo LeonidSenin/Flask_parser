@@ -12,6 +12,7 @@ from threading import Thread
 import pretty_html_table
 import datetime
 
+
 SECRET_KEY = os.urandom(32)
 
 urllib3.disable_warnings()
@@ -91,6 +92,7 @@ def pars():
                      'Дата': period})
                 df = pd.concat([df, df_row])
         return df
+
         # return df.to_html(render_links=True, escape=False)
 
     # thread1 = Thread(target=pars_yand)
@@ -102,11 +104,22 @@ def pars():
     df = pd.DataFrame(columns=['Описание', 'Ссылка', 'Источник', 'Дата'])
     # df = pd.concat([df, first, second])
     df = pd.concat([df, pars_yand(), pars_goog()])
+    # df = pd.concat([df, pars_goog()])
+
     # df.drop_duplicates(inplace=True)
     # df = pd.concat([df, thread2.start()])
     print(df)
-
-    return pretty_html_table.build_table(df, 'green_dark')
+    html_string = '''
+    <html>
+      <head><title>HTML Pandas Dataframe with CSS</title></head>
+      <link rel="stylesheet" type="text/css" href="static/df_style.css"/>
+      <body>
+        {table}
+      </body>
+    </html>.
+    '''
+    # return pretty_html_table.build_table(df, 'red_dark')
+    return html_string.format(table=df.to_html(render_links=True,index=False,classes='mystyle'))
 
 
 if __name__ == '__main__':

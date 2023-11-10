@@ -3,23 +3,24 @@
     <meta charset="UTF-8">
     <title>{{ title }}</title>
     <link rel="shortcut icon" href="{{ url_for('static', filename='/favicon.ico') }}">
+    <link rel="stylesheet" href='/static/login_style.css' />
 </head>
 <body>
+
 <nav>
 <a href="/index">FlaskApp</a>
 <a href="/about">About</a>
 </nav>
 <hr>
-<div class="content">
-</div>
-<h1 align="center">Ввод запроса</h1>
-    <form align="center" action="/pars" method="get" >
+
+<h1 style = 'text-align:center'>Ввод запроса</h1>
+    <form action="/pars" method="get" >
         {{ form.hidden_tag() }}
-        <p>
+        <p title="Подсказка" style = 'text-align:center'>
             {{ form.username.label }}<br>
-            {{ form.username(size=32) }}
+            {{ form.username(size=32) }}<br><br>
+            {{ form.submit()}}
         </p>
-        <p>{{ form.submit()}}</p>
     </form>
 </body>
 
