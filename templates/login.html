@@ -11,15 +11,16 @@
 <a href="/index">FlaskApp</a>
 <a href="/about">About</a>
 </nav>
-<hr>
 
 <h1 style = 'text-align:center'>Ввод запроса</h1>
     <form action="/pars" method="get" >
-        {{ form.hidden_tag() }}
         <p title="Подсказка" style = 'text-align:center'>
             {{ form.username.label }}<br>
             {{ form.username(size=32) }}<br><br>
-            {{ form.submit()}}
+            {{ form.submit()}}<br><br>
+            {{ message }}
+            <!--            <div class="loader"></div>-->
+
         </p>
     </form>
 </body>

@@ -7,6 +7,8 @@ class LoginForm(FlaskForm):
     username = StringField('Запрос', validators=[DataRequired()])
     submit = SubmitField('Искать')
 
+class TableFrom(FlaskForm):
+    submit = SubmitField('Кнопка')
 
 
 

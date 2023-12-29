@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+  <head>
+      <title>Таблица</title>
+      <link rel="shortcut icon" href="{{ url_for('static', filename='/favicon.ico') }}">
+      <link rel="stylesheet" type="text/css" href="static/df_style.css"/>
+  </head>
+      <body>
+      <caption>{{ title }}</caption>
+        <div>
+            {{ table | safe }}<br><br>
+        </div>
+        <div>
+            {{ form.submit() }}
+        </div>
+       <div><a href="/">Назад</a></div>
+      </body>
+</html>
