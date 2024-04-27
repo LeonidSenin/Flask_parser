@@ -44,6 +44,8 @@ def about():
 def index():
     return render_template('flask_app.html', title='Flask_app page')
 
+chrome_options = webdriver.ChromeOptions()
+chrome_options.add_argument("--headless")
 
 @app.route('/pars')
 def pars():
@@ -52,10 +54,10 @@ def pars():
     def pars_goog():
         print('Google')
         url = 'https://www.google.com/'
-        driver = webdriver.Chrome()
-        driver.implicitly_wait(12)
+        driver = webdriver.Chrome(options=chrome_options)
+        driver.implicitly_wait(5)
         driver.get(url)
-        time.sleep(5)
+        # time.sleep(5)
         driver.find_element(By.ID, "APjFqb").send_keys(f"{name}\n")
         soup = BeautifulSoup(driver.page_source, 'html.parser')
         driver.quit()
@@ -73,27 +75,27 @@ def pars():
         return df
         # return df.to_html(render_links=True, escape=False)
 
-    # def pars_yand():
-    #     print('Yandex')
-    #     url = 'https://ya.ru/'
-    #     driver = webdriver.Chrome()
-    #     driver.implicitly_wait(12)
-    #     driver.get(url)
-    #     time.sleep(5)
-    #     driver.find_element(By.ID, "text").send_keys(f"{name}\n")
-    #     soup = BeautifulSoup(driver.page_source, 'html.parser')
-    #     driver.quit()
-    #     links = soup.findAll('div', {'class': 'Path Organic-Path path organic__path'})
-    #     df = pd.DataFrame(columns=['Описание', 'Ссылка', 'Источник'])
-    #     for link in links:
-    #         if str(link.find().get('href')).startswith('https://yabs.yandex.ru/'):
-    #             pass
-    #         else:
-    #             df_row = pd.DataFrame(
-    #                 {'Описание': [name], 'Ссылка': [f'{link.find().get("href")}'], 'Источник': ['Yandex'],
-    #                  'Дата': period})
-    #             df = pd.concat([df, df_row])
-    #     return df
+    chrome_options = webdriver.ChromeOptions()
+    chrome_options.add_argument("--headless")
+    def pars_yand():
+        print('Yandex')
+        url = 'https://ya.ru/'
+        driver = webdriver.Chrome(options=chrome_options)
+        driver.implicitly_wait(12)
+        driver.get(url)
+        time.sleep(5)
+        driver.find_element(By.ID, "text").send_keys(f"{name}\n")
+        soup = BeautifulSoup(driver.page_source, 'html.parser')
+        driver.quit()
+        links = soup.findAll('div', {'class': 'Path Organic-Path path organic__path'})
+        df = pd.DataFrame(columns=['Описание', 'Ссылка', 'Источник'])
+        for link in links:
+            if str(link.find().get('href')).startswith('https://yabs.yandex.ru/'):
+                pass
+            else:
+                df_row = pd.DataFrame({'Описание': [name], 'Ссылка': [f'{link.find().get("href")}'], 'Источник': ['Yandex'], 'Дата': period})
+                df = pd.concat([df, df_row])
+        return df
 
 
     # Параллельный запуск двух функций (в доработке)
@@ -109,6 +111,7 @@ def pars():
 
     df = pd.DataFrame(columns=['Описание', 'Ссылка', 'Источник', 'Дата'])
     df = pd.concat([df, pars_goog()])  # pars_yand()
+    df = pd.concat([df, pars_yand()])
     df.to_pickle('table.pkl')
     return redirect('/table')
 
@@ -118,7 +121,7 @@ def dash_table():
     df = pd.read_pickle('table.pkl')
     # два варианта отрисовки
     # df.insert(loc=4, column='check_box', value=f"<input type='checkbox' checked=''>")
-    df.insert(loc=4, column='check_box', value=f"<select> <option value='apple'>Да</option> <option value='banana' selected >Нет</option></select>")
+    # df.insert(loc=4, column='check_box', value=f"<select> <option value='apple'>Да</option> <option value='banana' selected >Нет</option></select>")
     table = df.to_html(render_links=True, index=False, classes='mystyle', escape=False)
     return render_template('table.html', title='Таблица', form=form, table=table)
     # return html_string.format(table=df.to_html(render_links=True, index=False, classes='mystyle', escape=False))
@@ -127,5 +130,6 @@ def dash_table():
 if __name__ == '__main__':
     # app.run(debug=True)
     # http: // localhost: 8080 /
+    #http://localhost:8080/
     from waitress import serve
     serve(app, host="0.0.0.0", port=8080)
