@@ -9,13 +9,10 @@ from seleniumwire import webdriver
 import time
 from bs4 import BeautifulSoup
 import datetime
-
 from threading import Thread
 import pretty_html_table
 
-
 SECRET_KEY = os.urandom(32)
-
 urllib3.disable_warnings()
 
 pd.set_option('display.max_rows', 550)
@@ -49,12 +46,28 @@ chrome_options.add_argument("--headless")
 
 @app.route('/pars')
 def pars():
+    class ReturnValueThread(Thread):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.result = None
+        def run(self):
+            if self._target is None:
+                return  # could alternatively raise an exception, depends on the use case
+            try:
+                self.result = self._target(*self._args, **self._kwargs)
+            except Exception as exc:
+                print(f'{type(exc).__name__}: {exc}', file=sys.stderr)
+
+        def join(self, *args, **kwargs):
+            super().join(*args, **kwargs)
+            return self.result
+
     name = request.args.get('username')
     period = datetime.datetime.now()
     def pars_goog():
         print('Google')
         url = 'https://www.google.com/'
-        driver = webdriver.Chrome(options=chrome_options)
+        driver = webdriver.Chrome()
         driver.implicitly_wait(5)
         driver.get(url)
         # time.sleep(5)
@@ -73,14 +86,13 @@ def pars():
                 else:
                     pass
         return df
-        # return df.to_html(render_links=True, escape=False)
 
     chrome_options = webdriver.ChromeOptions()
     chrome_options.add_argument("--headless")
     def pars_yand():
         print('Yandex')
         url = 'https://ya.ru/'
-        driver = webdriver.Chrome(options=chrome_options)
+        driver = webdriver.Chrome()
         driver.implicitly_wait(12)
         driver.get(url)
         time.sleep(5)
@@ -97,21 +109,21 @@ def pars():
                 df = pd.concat([df, df_row])
         return df
 
-
-    # Параллельный запуск двух функций (в доработке)
-    # -------------------------------------
-    # thread1 = Thread(target=pars_yand)
-    # thread2 = Thread(target=pars_goog)
-    # first = thread1.start()
-    # second = thread2.start()
-    # thread1.join()
-    # thread2.join()
-    # df = pd.concat([df, first, second])
-    # -------------------------------------
-
     df = pd.DataFrame(columns=['Описание', 'Ссылка', 'Источник', 'Дата'])
-    df = pd.concat([df, pars_goog()])  # pars_yand()
-    df = pd.concat([df, pars_yand()])
+
+    # Параллельный запуск двух функций
+    # -------------------------------------
+    thread1 = ReturnValueThread(target=pars_yand)
+    thread2 = ReturnValueThread(target=pars_goog)
+    thread1.start()
+    thread2.start()
+    thread1.join()
+    thread2.join()
+    df = pd.concat([df, thread1.join(), thread2.join()])
+    print(df)
+    # -------------------------------------
+    # df = pd.concat([df, pars_goog()])  # pars_yand()
+    # df = pd.concat([df, pars_yand()])
     df.to_pickle('table.pkl')
     return redirect('/table')
 
@@ -129,7 +141,6 @@ def dash_table():
 
 if __name__ == '__main__':
     # app.run(debug=True)
-    # http: // localhost: 8080 /
-    #http://localhost:8080/
+    # http://localhost:8080/
     from waitress import serve
     serve(app, host="0.0.0.0", port=8080)
