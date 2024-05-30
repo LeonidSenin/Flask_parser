@@ -11,6 +11,13 @@ from bs4 import BeautifulSoup
 import datetime
 from threading import Thread
 import pretty_html_table
+import sys
+import numpy as np
+
+import requests
+from urllib.parse import urlparse, urljoin
+from bs4 import BeautifulSoup
+import colorama
 
 SECRET_KEY = os.urandom(32)
 urllib3.disable_warnings()
@@ -23,6 +30,13 @@ pd.set_option('max_colwidth', 70)
 app = Flask(__name__)
 # CSRF_ENABLED = True
 app.config['SECRET_KEY'] = SECRET_KEY
+
+# инициализация наборов для ссылок (обеспечивается уникальность ссылок)
+'''internal_urls — URL-адреса, которые ведут на другие страницы того же веб-сайта.
+external_urls — URL-адреса, которые ведут на другие веб-сайты.'''
+internal_urls = set()
+external_urls = set()
+total_urls_visited = 0
 
 
 @app.route('/', methods=['post', 'get'])
@@ -67,7 +81,7 @@ def pars():
     def pars_goog():
         print('Google')
         url = 'https://www.google.com/'
-        driver = webdriver.Chrome()
+        driver = webdriver.Chrome(options=chrome_options)
         driver.implicitly_wait(5)
         driver.get(url)
         # time.sleep(5)
@@ -87,8 +101,6 @@ def pars():
                     pass
         return df
 
-    chrome_options = webdriver.ChromeOptions()
-    chrome_options.add_argument("--headless")
     def pars_yand():
         print('Yandex')
         url = 'https://ya.ru/'
@@ -113,18 +125,145 @@ def pars():
 
     # Параллельный запуск двух функций
     # -------------------------------------
-    thread1 = ReturnValueThread(target=pars_yand)
-    thread2 = ReturnValueThread(target=pars_goog)
-    thread1.start()
-    thread2.start()
-    thread1.join()
-    thread2.join()
-    df = pd.concat([df, thread1.join(), thread2.join()])
-    print(df)
+    # thread1 = ReturnValueThread(target=pars_yand)
+    # thread2 = ReturnValueThread(target=pars_goog)
+    # thread1.start()
+    # thread2.start()
+    # thread1.join()
+    # thread2.join()
+    df = pd.concat([df, pars_goog()])
+
+    #--------------------------------------------------
+    # инициализация модуля colorama
+    colorama.init()
+    GREEN = colorama.Fore.GREEN
+    GRAY = colorama.Fore.LIGHTBLACK_EX
+    RESET = colorama.Fore.RESET
+    YELLOW = colorama.Fore.YELLOW
+
+    def is_valid(url):
+        """
+        Проверяет, является ли 'url' действительным URL
+        """
+        parsed = urlparse(url)
+        # print(parsed)
+        # print(bool(parsed.netloc) and bool(parsed.scheme))
+        return bool(parsed.netloc) and bool(parsed.scheme)
+
+    def get_all_website_links(url):
+        """
+        Возвращает все URL-адреса, найденные на `url`, в котором он принадлежит тому же веб-сайту.
+        параметры: count_itteration (int): число задаваемых иттераций.
+        """
+        internal_urls = set()
+        external_urls = set()
+
+        # все URL-адреса `url`
+        urls = set()
+        external_urls_test = set()
+
+        # доменное имя URL без протокола
+        domain_name = urlparse(url).netloc
+        soup = BeautifulSoup(requests.get(url, verify=False).content, "html.parser")
+
+        # site = requests.get("https://rosstat.gov.ru/investment_nonfinancial", verify=False)
+        # soup = BeautifulSoup(site.content, "html")
+
+        for a_tag in soup.findAll("a"):
+            href = a_tag.attrs.get("href")
+            # print(href)
+            if href == "" or href is None:
+                # href пустой тег
+                continue
+            href = urljoin(url, href)
+            parsed_href = urlparse(href)
+            # удалить GET-параметры URL, фрагменты URL и т. д.
+            href = parsed_href.scheme + "://" + parsed_href.netloc + parsed_href.path
+            if not is_valid(href):
+                # недействительный URL
+                continue
+            if href in internal_urls:
+                # уже в наборе
+                continue
+            if domain_name not in href:
+                # внешняя ссылка
+                if href not in external_urls:
+                    print(f"{GRAY}[!] Внешняя ссылка: {href}{RESET}")
+                    external_urls.add(f"{href}")
+                    external_urls_test.add(f"{href}")
+                continue
+            print(f"{GREEN}[*] Внутренняя ссылка: {href}{RESET}")
+            urls.add(f"{href}")
+            internal_urls.add(href)
+        print(external_urls_test)
+
+        # if len(external_urls_test) == 0 :
+        #     print('heeere weeeeeee gooooooo!!!!!')
+        #     external_urls_test.add('https://www.google.com/')
+
+        return urls, external_urls_test
+
+    def crawl(url):
+        """
+        Сканирует веб-страницу и извлекает все ссылки.
+        Вы найдете все ссылки в глобальных переменных набора external_urls и internal_urls.
+        """
+        global total_urls_visited
+        total_urls_visited += 1
+        # print(f"{YELLOW}[*] Проверена ссылка: {url}{RESET}")
+        try:
+            internal_links, external_links = get_all_website_links(url)
+            return external_links
+        except:
+            return [np.nan]
+
+    def group_dataframe(list_of_first_itter):
+        df_start = pd.DataFrame(list_of_first_itter, columns=['itteration_0'])
+        count = 1
+        n_count = 2
+        while count <= n_count:
+            # lst_new = []
+            df_conc = pd.DataFrame()
+            for i, row in df_start.iterrows():
+                df = pd.DataFrame()
+                df[f'itteration_{count}'] = list(crawl(row[f'itteration_{count - 1}']))
+                df[f'itteration_{count - 1}'] = row[f'itteration_{count - 1}']
+                df_conc = pd.concat([df_conc, df])
+                # print(df_conc.info())
+            try:
+                df_start = pd.merge(df_start, df_conc, on=f'itteration_{count - 1}', how='inner')
+            except:
+                pass
+
+            # print(df_start)
+            # print(df_start.info())
+            count += 1
+        return df_start
+
+
+    list_of_first_itter = list(set(df['Ссылка']))
+    print(list_of_first_itter)
+    # df_start = group_dataframe(list_of_first_itter)
+
+    df_result = pd.DataFrame()
+    for i in list_of_first_itter:
+        lis = list()
+        lis.append(i)
+        df_start = group_dataframe(lis)
+        df_result = pd.concat([df_result, df_start])
+        # print(df_start)
+    print(df_result)
+
+
+    print("[+] Итого внутренних ссылок:", len(internal_urls))
+    print("[+] Итого внешних ссылок:", len(external_urls))
+    print("[+] Итого URL:", len(external_urls) + len(internal_urls))
+    # print(df_start)
+    # print(df_start.loc[(df_start['itteration_2'] == 'tel://+78007779075')])
     # -------------------------------------
     # df = pd.concat([df, pars_goog()])  # pars_yand()
     # df = pd.concat([df, pars_yand()])
-    df.to_pickle('table.pkl')
+    df_result.to_pickle('table.pkl')
     return redirect('/table')
 
 @app.route('/table')
