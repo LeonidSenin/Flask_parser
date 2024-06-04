@@ -132,6 +132,7 @@ def pars():
     # thread1.join()
     # thread2.join()
     df = pd.concat([df, pars_goog()])
+    print(df)
 
     #--------------------------------------------------
     # инициализация модуля colorama
@@ -253,6 +254,7 @@ def pars():
         df_result = pd.concat([df_result, df_start])
         # print(df_start)
     print(df_result)
+    df_result.to_excel("output.xlsx",sheet_name='Sheet_name_1')
 
 
     print("[+] Итого внутренних ссылок:", len(internal_urls))
