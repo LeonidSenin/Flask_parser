@@ -78,27 +78,23 @@ def pars():
 
     name = request.args.get('username')
     period = datetime.datetime.now()
-    def pars_goog():
-        print('Google')
-        url = 'https://www.google.com/'
+
+    def pars_duck():
+        print('Duck')
+        url = 'https://duckduckgo.com/'
         driver = webdriver.Chrome(options=chrome_options)
-        driver.implicitly_wait(5)
         driver.get(url)
-        # time.sleep(5)
-        driver.find_element(By.ID, "APjFqb").send_keys(f"{name}\n")
+        driver.find_element(By.ID, "searchbox_input").send_keys(f"{name}\n")
         soup = BeautifulSoup(driver.page_source, 'html.parser')
         driver.quit()
         df = pd.DataFrame(columns=['Описание', 'Ссылка', 'Источник'])
-        for links in soup.findAll('div', {'class': 'MjjYud'}):
-            for link in links:
-                if link.find('a') != None:
-                    if link.find('a').get('href').startswith('https'):
-                        df_row = pd.DataFrame(
-                            {'Описание': [name], 'Ссылка': [f'{link.find("a").get("href")}'], 'Источник': ['Google'],
-                             'Дата': period})
-                        df = pd.concat([df, df_row])
-                else:
-                    pass
+        for links in soup.findAll('li', {'data-layout': 'organic'}):
+            for links_1 in links.findAll('div', {'class': 'ikg2IXiCD14iVX7AdZo1'}):
+                print(links_1.find('a').get('href'))
+                df_row = pd.DataFrame(
+                    {'Описание': [name], 'Ссылка': [f'{links_1.find("a").get("href")}'], 'Источник': ['Google'],
+                     'Дата': period})
+                df = pd.concat([df, df_row])
         return df
 
     def pars_yand():
@@ -131,7 +127,7 @@ def pars():
     # thread2.start()
     # thread1.join()
     # thread2.join()
-    df = pd.concat([df, pars_goog()])
+    df = pd.concat([df, pars_duck()])
 
     #--------------------------------------------------
     # инициализация модуля colorama
