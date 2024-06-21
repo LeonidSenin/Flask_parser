@@ -10,6 +10,20 @@ from urllib.parse import urlparse, urljoin
 from bs4 import BeautifulSoup
 import colorama
 import re
+from sqlalchemy import create_engine
+from dotenv import load_dotenv
+import os
+from tqdm import tqdm
+
+from data_research_keywords import rake_nltk
+load_dotenv()
+constant = os.getenv
+
+# Объявляем глобальные переменные
+user = constant("db_user")
+passw = constant("db_passw")
+host = constant('db_host')
+port = constant('db_port')
 
 app1_blueprint = Blueprint('app1', __name__)
 
@@ -19,6 +33,10 @@ external_urls — URL-адреса, которые ведут на другие 
 internal_urls = set()
 external_urls = set()
 total_urls_visited = 0
+
+TABLE_NAME = 'pars_data'
+SCHEMA_NAME = 'dataset'
+engine = create_engine(f'postgresql://{user}:{passw}@{host}:{port}/ac_data')
 
 # инициализация модуля colorama
 colorama.init()
@@ -36,7 +54,7 @@ def get_html_with_delay(url):
         Возвращает текстовое содержимое страницы.
     """
     try:
-        response = requests.get(url, verify=False)
+        response = requests.get(url, verify=False,timeout=3)
         soup = BeautifulSoup(response.content, "html.parser")
         return get_html(soup)
     except:
@@ -47,8 +65,8 @@ def get_html(soup):
         Извлекает и очищает текст из объекта BeautifulSoup.
     """
     try:
-        html = soup.get_text()
-        text = re.sub(r'\<[^>]*\>', '', html)
+        text = soup.get_text()
+        text = re.sub(r'\<[^>]*\>', '', text)
         # text = bleach.clean(html, tags=[], strip=True)
         text = re.sub(r'\n', ' ', text)
         text = re.sub(r'\t', ' ', text)
@@ -77,7 +95,7 @@ def get_all_website_links(url):
     # доменное имя URL без протокола
     domain_name = urlparse(url).netloc
 
-    soup = BeautifulSoup(requests.get(url, verify=False).content, "html.parser")
+    soup = BeautifulSoup(requests.get(url, verify=False,timeout=3).content, "html.parser")
 
     for a_tag in soup.findAll("a"):
         href = a_tag.attrs.get("href")
@@ -98,16 +116,20 @@ def get_all_website_links(url):
             # внешняя ссылка
             if href not in external_urls:
                 if len(href.split('/')) > 4:
-                    try:
-                        soup_ex_link = BeautifulSoup(requests.get(href, verify=False).content, "html.parser")
-                        text = get_html(soup_ex_link)
-                        external_urls.add(f"{href}")
-                        external_urls_test.append(f"{href}")
-                        page_text.append(text)
-                    except:
-                        external_urls.add(f"{href}")
-                        external_urls_test.append(f"{href}")
-                        page_text.append(np.nan)
+                    if not str(href).endswith('.apk'):
+                        print(href)
+                        try:
+                            soup_ex_link = BeautifulSoup(requests.get(href, verify=False,timeout=3).content, "html.parser")
+                            text = get_html(soup_ex_link)
+                            external_urls.add(f"{href}")
+                            external_urls_test.append(f"{href}")
+                            page_text.append(text)
+                            print('page text ok',href)
+                        except:
+                            external_urls.add(f"{href}")
+                            external_urls_test.append(f"{href}")
+                            page_text.append(np.nan)
+                            print('page text nan', href)
             continue
         # print(f"{GREEN}[*] Внутренняя ссылка: {href}{RESET}")
         urls.add(f"{href}")
@@ -119,9 +141,9 @@ def create_dataframe(links, text, itteration):
         Создает DataFrame из списков ссылок, текста и номера итерации.
     """
     data = {
-        'Link': links,
-        'Text': text,
-        'Ittrertion': itteration
+        'link': links,
+        'text': text,
+        'itteration': itteration
     }
     df = pd.DataFrame(data)
     return df
@@ -159,35 +181,51 @@ def parse():
     # Список начальных URL для итерации
     list_iterration = list(set(df_new['Ссылка']))
     # list_iterration = ['https://www.marronnier.ru/blog/15-analitika/52-avtomatizitsiya-klasterizatsiya-klyuchevyh-slov-na-python']
+    print(list_iterration)
 
-    df_summary = pd.DataFrame(columns=['Link', 'Text', 'Ittrertion'])
+    df_summary = pd.DataFrame(columns=['link', 'text', 'itteration'])
     itteration = 1
 
-    # Первая итерация
-    for i in list_iterration:
-        first_row_text = get_html_with_delay(i)
-        df_summary.loc[len(df_summary.index)] = [i, first_row_text, 1]
 
-        links, text = get_all_website_links(i)
-        df = create_dataframe(links, text, 2)
-        df_summary = pd.concat([df_summary, df], ignore_index=True)
+    # Первая итерация
+    for i in tqdm(list_iterration, ncols=100):
+        try:
+            first_row_text = get_html_with_delay(i)
+            df_summary.loc[len(df_summary.index)] = [i, first_row_text, 1]
+            links, text = get_all_website_links(i)
+            df = create_dataframe(links, text, 2)
+            df_summary = pd.concat([df_summary, df], ignore_index=True)
+        except:
+            pass
+
 
     itteration += 1
 
-    # Следующие итерации до n_count
-    while n_count >= itteration:
-        df = df_summary.loc[(df_summary['Ittrertion'] == itteration)]
+    #
+    # # Следующие итерации до n_count
+    # while n_count >= itteration:
+    #     df = df_summary.loc[(df_summary['Ittrertion'] == itteration)]
+    #
+    #     for i in df['Link']:
+    #         links, text = get_all_website_links(i)
+    #         df_new = create_dataframe(links, text, itteration + 1)
+    #         df_summary = pd.concat([df_summary, df_new], ignore_index=True)
+    #
+    #     itteration += 1
+    #
+    # # Вывод результата
 
-        for i in df['Link']:
-            links, text = get_all_website_links(i)
-            df_new = create_dataframe(links, text, itteration + 1)
-            df_summary = pd.concat([df_summary, df_new], ignore_index=True)
+    df_summary.dropna(subset='text',inplace=True)
 
-        itteration += 1
 
-    # Вывод результата
+    df_summary = rake_nltk()
     print(df_summary)
+    print(df_summary.info())
 
-    df_summary.to_pickle('table.pkl')
+
+    # redirect('/app2/keywords')
+
+    df_summary.to_pickle('table_show.pkl')
+    # df_summary.to_sql(TABLE_NAME, engine, if_exists='append', chunksize=1000, index=False, schema=SCHEMA_NAME)
     return redirect('/app2/table')
 
